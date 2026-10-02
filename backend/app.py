@@ -1,7 +1,10 @@
 from flask import Flask, jsonify, request
-
+import os
 app = Flask(__name__)
+UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 projects = []
 processing_jobs = []
 
@@ -109,5 +112,38 @@ def start_ai_tracking():
         "status": "Pending",
         "note": "Actual terrain estimation and 3D reconstruction are not connected yet."
     }), 202
+@app.route("/upload", methods=["POST"])
+def upload_file():
+    if "file" not in request.files:
+        return jsonify({
+            "error": "No file uploaded"
+        }), 400
+
+    file = request.files["file"]
+
+    if file.filename == "":
+        return jsonify({
+            "error": "No file selected"
+        }), 400
+
+    file_path = os.path.join(
+        app.config["UPLOAD_FOLDER"],
+        file.filename
+    )
+
+    file.save(file_path)
+
+    job = {
+        "id": len(processing_jobs) + 1,
+        "file_name": file.filename,
+        "status": "Uploaded"
+    }
+
+    processing_jobs.append(job)
+
+    return jsonify({
+        "message": "File uploaded successfully",
+        "job": job
+    }), 201
 if __name__ == "__main__":
     app.run(debug=True)
