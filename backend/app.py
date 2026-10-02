@@ -1,6 +1,8 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 
 app = Flask(__name__)
+
+projects = []
 
 
 @app.route("/")
@@ -10,25 +12,29 @@ def home():
     })
 
 
-@app.route("/projects")
-def projects():
+# PROJECT MANAGEMENT
+
+@app.route("/projects", methods=["GET"])
+def get_projects():
+    return jsonify(projects)
+
+
+@app.route("/projects", methods=["POST"])
+def create_project():
+    data = request.get_json()
+
+    project = {
+        "id": len(projects) + 1,
+        "name": data.get("name"),
+        "description": data.get("description")
+    }
+
+    projects.append(project)
+
     return jsonify({
-        "projects": []
-    })
-
-
-@app.route("/processing-status")
-def processing_status():
-    return jsonify({
-        "status": "Not started"
-    })
-
-
-@app.route("/ai-tracking")
-def ai_tracking():
-    return jsonify({
-        "message": "AI Tracking Module ready"
-    })
+        "message": "Project created successfully",
+        "project": project
+    }), 201
 
 
 if __name__ == "__main__":
