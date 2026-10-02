@@ -85,6 +85,29 @@ def update_processing_status(job_id):
         "error": "Job not found"
     }), 404
 
+# =========================
+# AI TRACKING MODULE
+# =========================
 
+@app.route("/ai-tracking", methods=["GET"])
+def get_ai_tracking():
+    return jsonify({
+        "module": "AI Tracking",
+        "status": "Ready",
+        "message": "DepthWizard AI tracking API is running"
+    })
+
+
+@app.route("/ai-tracking", methods=["POST"])
+def start_ai_tracking():
+    data = request.get_json(silent=True) or {}
+
+    return jsonify({
+        "message": "AI tracking request received",
+        "project_id": data.get("project_id"),
+        "image_name": data.get("image_name"),
+        "status": "Pending",
+        "note": "Actual terrain estimation and 3D reconstruction are not connected yet."
+    }), 202
 if __name__ == "__main__":
     app.run(debug=True)
