@@ -1,5 +1,7 @@
 from flask import Flask, jsonify, request
 import os
+from PIL import Image
+from transformers import pipeline
 app = Flask(__name__)
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -145,5 +147,79 @@ def upload_file():
         "message": "File uploaded successfully",
         "job": job
     }), 201
+
+@app.route("/jobs", methods=["GET"])
+def get_jobs():
+    return jsonify(processing_jobs)
+
+
+
+@app.route("/jobs/<int:job_id>/status", methods=["PUT"])
+def update_job_status(job_id):
+    for job in processing_jobs:
+        if job["id"] == job_id:
+            status = request.json.get("status")
+
+            if status not in ["Uploaded", "Processing", "Completed", "Failed"]:
+                return jsonify({"error": "Invalid status"}), 400
+
+            job["status"] = status
+            return jsonify({
+                "message": "Status updated successfully",
+                "job": job
+            }), 200
+
+    return jsonify({"error": "Job not found"}), 404
+
+depth_estimator = None
+
+@app.route("/depth/<int:job_id>", methods=["POST"])
+def estimate_depth(job_id):
+    global depth_estimator
+
+    job = next(
+        (j for j in processing_jobs if j["id"] == job_id),
+        None
+    )
+
+    if job is None:
+        return jsonify({"error": "Job not found"}), 404
+
+    image_path = os.path.join(
+        app.config["UPLOAD_FOLDER"],
+        job["file_name"]
+    )
+
+    if not os.path.exists(image_path):
+        return jsonify({"error": "Uploaded image not found"}), 404
+
+    try:
+        if depth_estimator is None:
+            depth_estimator = pipeline(
+                task="depth-estimation",
+                model="depth-anything/Depth-Anything-V2-Small-hf"
+            )
+
+        result = depth_estimator(Image.open(image_path).convert("RGB"))
+
+        output_path = os.path.join(
+            app.config["UPLOAD_FOLDER"],
+            f"depth_{job_id}.png"
+        )
+        result["depth"].save(output_path)
+
+        job["status"] = "Completed"
+
+        return jsonify({
+            "message": "Depth estimation completed",
+            "job_id": job_id,
+            "depth_map": f"depth_{job_id}.png",
+            "note": "Relative depth estimate only; not calibrated terrain elevation."
+        }), 200
+
+    except Exception as e:
+        job["status"] = "Failed"
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     app.run(debug=True)
