@@ -1,0 +1,71 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@theme inline {
+  --font-sans: "DM Sans", sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--card);
+  --color-popover-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--primary);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--primary-foreground);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-lime: var(--lime);
+  --color-lime-foreground: var(--lime-foreground);
+  --color-sea: var(--sea);
+  --color-warning: var(--warning);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+:root {
+  --background: oklch(0.978 0.005 185);
+  --foreground: oklch(0.19 0.025 202);
+  --card: oklch(1 0 0);
+  --primary: oklch(0.34 0.082 185);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.94 0.019 184);
+  --secondary-foreground: oklch(0.25 0.045 187);
+  --muted: oklch(0.955 0.009 183);
+  --muted-foreground: oklch(0.54 0.027 195);
+  --accent: oklch(0.91 0.033 178);
+  --accent-foreground: oklch(0.23 0.045 187);
+  --border: oklch(0.89 0.015 185);
+  --destructive: oklch(0.56 0.19 27);
+  --ink: oklch(0.19 0.03 202);
+  --ink-soft: oklch(0.26 0.035 200);
+  --lime: oklch(0.88 0.19 125);
+  --lime-foreground: oklch(0.18 0.03 202);
+  --sea: oklch(0.63 0.13 184);
+  --warning: oklch(0.75 0.14 75);
+}
+@layer base {
+  * { border-color: var(--border); }
+  html { scroll-behavior: smooth; }
+  body { background: var(--background); color: var(--foreground); font-family: var(--font-sans); }
+  h1,h2,h3,h4 { font-family: var(--font-display); letter-spacing: 0; }
+  button, a, input { -webkit-tap-highlight-color: transparent; }
+  ::selection { background: var(--lime); color: var(--ink); }
+}
+@utility terrain-shade { background: linear-gradient(90deg, oklch(0.14 0.025 203 / 94%) 0%, oklch(0.14 0.025 203 / 77%) 37%, oklch(0.14 0.025 203 / 15%) 100%); }
+@utility terrain-bottom-shade { background: linear-gradient(0deg, oklch(0.14 0.025 203 / 80%), transparent 55%); }
+@utility grid-paper { background-image: linear-gradient(oklch(0.89 0.015 185 / 40%) 1px, transparent 1px), linear-gradient(90deg, oklch(0.89 0.015 185 / 40%) 1px, transparent 1px); background-size: 32px 32px; }
+@utility grid-dark { background-image: linear-gradient(oklch(1 0 0 / 8%) 1px, transparent 1px), linear-gradient(90deg, oklch(1 0 0 / 8%) 1px, transparent 1px); background-size: 36px 36px; }
+@utility elevation-ramp { background: linear-gradient(90deg, oklch(0.46 0.1 215), oklch(0.68 0.13 180), oklch(0.86 0.17 126), oklch(0.84 0.15 77), oklch(0.68 0.15 35)); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }

@@ -1,0 +1,4 @@
+- [x] Build the DepthWizard visual system and sample imagery.
+- [x] Create home, login, signup, dashboard, upload, processing, results, terrain viewer, and history pages.
+- [x] Connect the frontend-only navigation and sample upload/analysis flow.
+- [x] Verify desktop and mobile rendering and the central flow.
