@@ -1,8 +1,260 @@
+
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { ArrowLeft, Box, Expand, MapPin, Mountain, Play, RotateCcw } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  ArrowLeft,
+  Box,
+  Expand,
+  MapPin,
+  Mountain,
+  Play,
+} from "lucide-react";
 import { AppShell, StatLabel } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { TerrainViewer } from "@/components/terrain-viewer";
-export const Route = createFileRoute("/viewer")({ head: () => ({ meta: [{ title: "3D terrain viewer — DepthWizard" }, { name: "description", content: "Explore an interactive three-dimensional terrain model in DepthWizard." }, { property: "og:title", content: "3D terrain viewer — DepthWizard" }, { property: "og:description", content: "Navigate a landscape from every angle in 3D." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }), component: Viewer });
-function Viewer() { const [exaggeration,setExaggeration] = useState(1.5); const [wireframe,setWireframe] = useState(false); const [rotate,setRotate] = useState(false); const [full,setFull] = useState(false); return <AppShell title="3D terrain viewer" subtitle="Navigate your landscape from a whole new perspective."><div className="mb-5 flex flex-wrap items-center justify-between gap-3"><div><p className="font-display text-lg font-bold">Himalayan Ridge Survey</p><p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><MapPin size={13} /> Uttarakhand, India · Sample 3D terrain</p></div><Button variant="outline" size="sm" asChild><Link to="/results"><ArrowLeft /> Back to results</Link></Button></div><div className={`grid gap-5 ${full ? "fixed inset-0 z-50 overflow-auto bg-background p-4 lg:p-8" : "xl:grid-cols-[minmax(0,1fr)_270px]"}`}><div className="relative h-[420px] overflow-hidden bg-ink sm:h-[560px] xl:h-[680px]"><TerrainViewer exaggeration={exaggeration} wireframe={wireframe} autoRotate={rotate} /><div className="pointer-events-none absolute left-4 top-4 bg-ink/75 px-3 py-2 text-[10px] font-bold uppercase tracking-[.14em] text-lime backdrop-blur-sm">Interactive terrain · Demo model</div><div className="absolute bottom-4 right-4 flex gap-2"><Button variant="sidebarGhost" size="icon" className="bg-ink/80" onClick={() => setFull(!full)} aria-label={full ? "Exit expanded view" : "Expand viewer"} title={full ? "Exit expanded view" : "Expand viewer"}><Expand size={17} /></Button></div><div className="pointer-events-none absolute bottom-4 left-4 hidden bg-ink/75 px-3 py-2 text-xs text-primary-foreground/80 backdrop-blur-sm sm:block">Drag to rotate · Scroll to zoom · Right-click to pan</div></div><div className="space-y-5"><div className="border border-border bg-card p-5"><div className="flex items-center gap-2"><Box size={17} className="text-primary" /><h3 className="font-display text-base font-bold">View controls</h3></div><div className="mt-7"><div className="flex items-center justify-between"><StatLabel>Vertical exaggeration</StatLabel><span className="font-display text-sm font-bold text-primary">{exaggeration.toFixed(1)}×</span></div><input type="range" min="0.5" max="3" step="0.1" value={exaggeration} onChange={e => setExaggeration(Number(e.target.value))} className="mt-4 w-full accent-primary" aria-label="Vertical exaggeration" /><div className="mt-1 flex justify-between text-[10px] text-muted-foreground"><span>0.5×</span><span>3.0×</span></div></div><div className="mt-6 border-t border-border pt-5"><StatLabel>Display mode</StatLabel><div className="mt-3 grid grid-cols-2 gap-2"><Button variant={!wireframe ? "default" : "outline"} size="sm" onClick={() => setWireframe(false)}>Satellite</Button><Button variant={wireframe ? "default" : "outline"} size="sm" onClick={() => setWireframe(true)}>Wireframe</Button></div></div><div className="mt-6 border-t border-border pt-5"><Button variant={rotate ? "default" : "outline"} className="w-full" onClick={() => setRotate(!rotate)}><Play size={15} /> {rotate ? "Pause rotation" : "Auto rotate"}</Button></div></div><div className="border border-border bg-card p-5"><div className="flex items-center gap-2"><Mountain size={17} className="text-primary" /><h3 className="font-display text-base font-bold">Terrain details</h3></div><div className="mt-5 space-y-4">{[["Peak elevation","4,218 m"],["Terrain coverage","12.8 km²"],["Source","Satellite imagery"],["Model","Illustrative 3D demo"]].map(([label,value]) => <div key={label} className="flex items-start justify-between gap-4 border-b border-border pb-3 text-xs last:border-0 last:pb-0"><span className="text-muted-foreground">{label}</span><span className="text-right font-semibold">{value}</span></div>)}</div></div></div></div><p className="mt-4 text-xs text-muted-foreground">The 3D surface is a demonstrative terrain model, not an AI-generated reconstruction of the uploaded image.</p></AppShell>; }
+
+const API = "https://zany-space-goggles-gxrvg677gqqxcwqv9-5000.app.github.dev";
+
+export const Route = createFileRoute("/viewer")({
+  head: () => ({
+    meta: [
+      { title: "3D Terrain Viewer — DepthWizard" },
+      {
+        name: "description",
+        content: "Explore a relative-height terrain model in 3D.",
+      },
+    ],
+  }),
+  component: Viewer,
+});
+
+function Viewer() {
+  const [exaggeration, setExaggeration] = useState(1.5);
+  const [wireframe, setWireframe] = useState(false);
+  const [rotate, setRotate] = useState(false);
+  const [full, setFull] = useState(false);
+  const [heights, setHeights] = useState<number[][]>([]);
+  const [imageData, setImageData] = useState<string | null>(null);
+
+useEffect(() => {
+  setImageData(sessionStorage.getItem("depthwizard-image-preview"));
+}, []);
+  const [status, setStatus] = useState("Loading terrain...");
+  const [projectName, setProjectName] = useState("Your uploaded project");
+
+  useEffect(() => {
+    const savedProject = sessionStorage.getItem("depthwizard-project");
+    if (savedProject) {
+      try {
+        const project = JSON.parse(savedProject);
+        setProjectName(
+          typeof project === "string"
+            ? project
+            : project.name || "Your uploaded project"
+        );
+      } catch {
+        setProjectName(savedProject);
+      }
+    }
+
+    async function loadTerrain() {
+      try {
+        const imageId = Number(
+          sessionStorage.getItem("depthwizard-image-id") || "1"
+        );
+        const resultId = Number(
+          sessionStorage.getItem("depthwizard-result-id") || "1"
+        );
+
+        const response = await fetch(`${API}/terrain/generate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            image_id: imageId,
+            result_id: resultId,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Terrain request failed");
+        }
+
+        setHeights(data.heights || []);
+        setStatus(
+          data.note ||
+            "Demo terrain loaded. Heights are relative, not metres."
+        );
+      } catch (error) {
+        console.error("Terrain loading error:", error);
+        setStatus(
+          "Could not load terrain from the backend. Check that port 5000 is running."
+        );
+      }
+    }
+
+    loadTerrain();
+  }, []);
+
+  return (
+    <AppShell
+      title="3D terrain viewer"
+      subtitle="Explore the terrain surface generated by your backend."
+    >
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="font-display text-lg font-bold">{projectName}</p>
+          <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+            <MapPin size={13} /> Uploaded project · Relative-height demo
+          </p>
+        </div>
+        <Button variant="outline" size="sm" asChild>
+          <Link to="/results">
+            <ArrowLeft /> Back to results
+          </Link>
+        </Button>
+      </div>
+
+      <div
+        className={`grid gap-5 ${
+          full
+            ? "fixed inset-0 z-50 overflow-auto bg-background p-4 lg:p-8"
+            : "xl:grid-cols-[minmax(0,1fr)_270px]"
+        }`}
+      >
+        <div className="relative h-[420px] overflow-hidden bg-ink sm:h-[560px] xl:h-[680px]">
+          <TerrainViewer
+            exaggeration={exaggeration}
+            wireframe={wireframe}
+            autoRotate={rotate}
+            heights={heights}
+            imageData={imageData}
+          />
+
+          <div className="pointer-events-none absolute left-4 top-4 bg-ink/75 px-3 py-2 text-[10px] font-bold uppercase tracking-[.14em] text-lime backdrop-blur-sm">
+            Backend terrain · Relative heights
+          </div>
+
+          <div className="absolute bottom-4 right-4 flex gap-2">
+            <Button
+              variant="sidebarGhost"
+              size="icon"
+              className="bg-ink/80"
+              onClick={() => setFull(!full)}
+              aria-label={full ? "Exit expanded view" : "Expand viewer"}
+              title={full ? "Exit expanded view" : "Expand viewer"}
+            >
+              <Expand size={17} />
+            </Button>
+          </div>
+
+          <div className="pointer-events-none absolute bottom-4 left-4 hidden bg-ink/75 px-3 py-2 text-xs text-primary-foreground/80 backdrop-blur-sm sm:block">
+            Drag to rotate · Scroll to zoom · Right-click to pan
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          <div className="border border-border bg-card p-5">
+            <div className="flex items-center gap-2">
+              <Box size={17} className="text-primary" />
+              <h3 className="font-display text-base font-bold">
+                View controls
+              </h3>
+            </div>
+
+            <div className="mt-7">
+              <div className="flex items-center justify-between">
+                <StatLabel>Vertical exaggeration</StatLabel>
+                <span className="font-display text-sm font-bold text-primary">
+                  {exaggeration.toFixed(1)}×
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0.5"
+                max="3"
+                step="0.1"
+                value={exaggeration}
+                onChange={(event) =>
+                  setExaggeration(Number(event.target.value))
+                }
+                className="mt-4 w-full accent-primary"
+                aria-label="Vertical exaggeration"
+              />
+              <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
+                <span>0.5×</span>
+                <span>3.0×</span>
+              </div>
+            </div>
+
+            <div className="mt-6 border-t border-border pt-5">
+              <StatLabel>Display mode</StatLabel>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <Button
+                  variant={!wireframe ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setWireframe(false)}
+                >
+                  Surface
+                </Button>
+                <Button
+                  variant={wireframe ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setWireframe(true)}
+                >
+                  Wireframe
+                </Button>
+              </div>
+            </div>
+
+            <div className="mt-6 border-t border-border pt-5">
+              <Button
+                variant={rotate ? "default" : "outline"}
+                className="w-full"
+                onClick={() => setRotate(!rotate)}
+              >
+                <Play size={15} />
+                {rotate ? "Pause rotation" : "Auto rotate"}
+              </Button>
+            </div>
+          </div>
+
+          <div className="border border-border bg-card p-5">
+            <div className="flex items-center gap-2">
+              <Mountain size={17} className="text-primary" />
+              <h3 className="font-display text-base font-bold">
+                Terrain details
+              </h3>
+            </div>
+            <p className="mt-4 text-sm text-muted-foreground">{status}</p>
+            <div className="mt-4 space-y-3 text-xs">
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground">Grid size</span>
+                <span className="font-semibold">
+                  {heights.length
+                    ? `${heights[0]?.length || 0} × ${heights.length}`
+                    : "Waiting for data"}
+                </span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground">Height units</span>
+                <span className="font-semibold">Relative</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground">Source</span>
+                <span className="font-semibold">Terrain API</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p className="mt-4 text-xs text-muted-foreground">
+        This is a synthetic demonstration surface generated by the backend.
+        It is not yet a measured elevation map derived from the uploaded image,
+        and its heights are not in metres.
+      </p>
+    </AppShell>
+  );
+}

@@ -1,0 +1,16 @@
+# Python virtual environment
+backend/auth/.venv/
+
+# Python cache files
+**/__pycache__/
+*.py[cod]
+
+# Frontend dependencies
+node_modules/
+depthweaver-frontend-main/
+
+# Generated DepthWizard results and uploaded images
+backend/auth/results/*
+!backend/auth/results/.gitkeep
+backend/auth/uploads/*
+!backend/auth/uploads/.gitkeep

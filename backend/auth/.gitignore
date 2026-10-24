@@ -1,0 +1,15 @@
+venv/
+__pycache__/
+*.pyc
+.env
+depthwizard.db
+uploads/*
+results/*
+
+# Local secrets and generated user data
+.env
+*.db
+uploads/*
+!uploads/.gitkeep
+results/*
+!results/.gitkeep

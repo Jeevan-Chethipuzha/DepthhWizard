@@ -2,7 +2,9 @@ from flask import Flask, jsonify, request
 import os
 from PIL import Image
 from transformers import pipeline
+from terrain.terrain import terrain_bp
 app = Flask(__name__)
+app.register_blueprint(terrain_bp)
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
