@@ -14,3 +14,17 @@ backend/auth/results/*
 !backend/auth/results/.gitkeep
 backend/auth/uploads/*
 !backend/auth/uploads/.gitkeep
+
+# Private environment credentials
+.env
+**/.env
+
+# Python virtual environments
+.venv312/
+
+# Private credentials
+.env
+**/.env
+
+# Python virtual environments
+.venv312/

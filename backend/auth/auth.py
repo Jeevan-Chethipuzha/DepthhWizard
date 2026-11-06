@@ -1,5 +1,10 @@
 import os
+from pathlib import Path
 from datetime import datetime, timedelta, timezone
+
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).with_name(".env"))
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer

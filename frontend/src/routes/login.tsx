@@ -46,13 +46,30 @@ function Login() {
         }),
       });
 
-      const data = await response.json();
+      const text = await response.text();
+let data: {
+  detail?: string;
+  message?: string;
+  access_token?: string;
+  token_type?: string;
+} = {};
 
-      if (!response.ok) {
-        throw new Error(data.detail || "Login failed");
-      }
+try {
+  data = JSON.parse(text);
+} catch {
+  // The server may return a non-JSON error.
+}
 
-      localStorage.setItem("depthwizard_token", data.access_token);
+if (!response.ok) {
+  throw new Error(
+    data.detail || data.message || `Login failed (HTTP ${response.status})`,
+  );
+}
+    if (!data.access_token) {
+  throw new Error("Login response did not contain an access token");
+}
+
+localStorage.setItem("depthwizard_token", data.access_token);
 
       navigate({ to: "/dashboard" });
     } catch (err) {
@@ -144,7 +161,14 @@ function Login() {
                 </Button>
               </div>
             </div>
-
+            <p className="text-right text-sm">
+              <Link
+                to="/forgot-password"
+                className="font-semibold text-primary hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </p>
             {error && (
               <p className="text-sm text-red-600">
                 {error}
