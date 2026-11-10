@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from auth import get_current_user
@@ -162,3 +163,38 @@ def delete_result(
     db.commit()
 
     return {"message": "Result deleted successfully."}
+
+@router.get("/{result_id}/flythrough")
+def get_flythrough(
+    result_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    result = (
+        db.query(Result)
+        .filter(
+            Result.id == result_id,
+            Result.user_id == current_user.id,
+        )
+        .first()
+    )
+
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail="Result not found.",
+        )
+
+    path = result.flythrough_path
+
+    if not path or not os.path.isfile(path):
+        raise HTTPException(
+            status_code=404,
+            detail="Flythrough video is not available yet.",
+        )
+
+    return FileResponse(
+        path=path,
+        media_type="video/mp4",
+        filename=f"depthwizard_flythrough_{result_id}.mp4",
+    )
