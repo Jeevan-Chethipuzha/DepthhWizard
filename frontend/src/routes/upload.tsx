@@ -28,7 +28,7 @@ function Upload() { const navigate = useNavigate(); const fileRef = useRef<HTMLI
       formData.append("file", selectedFile);
 
       const uploadResponse = await fetch(
-        "https://zany-space-goggles-gxrvg677gqqxcwqv9-8000.app.github.dev/images/upload",
+        "https://depthhwizard.onrender.com/images/upload",
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
@@ -42,7 +42,7 @@ function Upload() { const navigate = useNavigate(); const fileRef = useRef<HTMLI
       }
 
       const resultResponse = await fetch(
-        `https://zany-space-goggles-gxrvg677gqqxcwqv9-8000.app.github.dev/results/generate/${uploadData.id}`,
+        `https://depthhwizard.onrender.com/results/generate/${uploadData.id}`,
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },

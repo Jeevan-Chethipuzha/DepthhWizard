@@ -5,7 +5,7 @@ import { Brand } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { terrainAerial } from "@/lib/demo";
 
-const API_URL = "https://zany-space-goggles-gxrvg677gqqxcwqv9-8000.app.github.dev";
+const API_URL = "https://depthhwizard.onrender.com";
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [

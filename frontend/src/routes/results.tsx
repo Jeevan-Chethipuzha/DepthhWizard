@@ -1,11 +1,9 @@
-
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Check, Image as ImageIcon, Mountain, AlertCircle } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 
-const API = "https://zany-space-goggles-gxrvg677gqqxcwqv9-8000.app.github.dev";
+const API = "https://depthhwizard.onrender.com";
 
 export const Route = createFileRoute("/results")({
   head: () => ({
@@ -20,6 +18,8 @@ function Results() {
   const [resultId, setResultId] = useState<string | null>(null);
   const [summary, setSummary] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState("");
+  const [videoAvailable, setVideoAvailable] = useState(false);
+  const [videoBlobUrl, setVideoBlobUrl] = useState<string | null>(null);
 
   useEffect(() => {
     setProject(sessionStorage.getItem("depthwizard-project") || "Terrain Analysis");
@@ -36,98 +36,113 @@ function Results() {
       return;
     }
 
+    let objectUrl: string | null = null;
+
+    fetch(`${API}/results/${resultId}/flythrough`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Flythrough video is not available.");
+        return response.blob();
+      })
+      .then((blob) => {
+        objectUrl = URL.createObjectURL(blob);
+        setVideoBlobUrl(objectUrl);
+        setVideoAvailable(true);
+      })
+      .catch(() => setVideoAvailable(false));
+
     fetch(`${API}/geospatial/results/${resultId}/elevation-summary`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then(async response => {
-        if (!response.ok) {
-          throw new Error("The backend summary is not available yet.");
-        }
+      .then(async (response) => {
+        if (!response.ok) throw new Error("The elevation summary is not available.");
         return response.json();
       })
-      .then(data => setSummary(data))
-      .catch(err => setError(err instanceof Error ? err.message : "Could not load the result."));
+      .then((data) => setSummary(data))
+      .catch((err) => setError(err instanceof Error ? err.message : "Could not load the summary."));
+
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
   }, [resultId]);
 
   return (
     <AppShell
       title="Analysis results"
-      subtitle="Review the uploaded image and the available analysis output."
-      action={
-        <span className="flex items-center gap-2 text-xs font-semibold text-primary">
-          <Check size={15} /> Upload submitted
-        </span>
-      }
+      subtitle="Review your uploaded image and generated terrain outputs."
     >
-      <div className="mb-7 border-b border-border pb-6">
-        <p className="text-xs font-bold uppercase tracking-widest text-primary">
-          DepthWizard / Results
-        </p>
-        <h2 className="mt-2 text-2xl font-bold">{project}</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {resultId ? `Backend result ID: ${resultId}` : "No result ID was saved."}
-        </p>
-      </div>
+      <div className="mx-auto max-w-5xl space-y-6 p-6">
+        <div>
+          <h2 className="text-2xl font-bold">{project}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {resultId ? `Backend result ID: ${resultId}` : "No result ID was saved."}
+          </p>
+        </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <section>
-          <h3 className="mb-3 flex items-center gap-2 font-semibold">
-            <ImageIcon size={18} /> Your uploaded image
-          </h3>
-          <div className="flex min-h-64 items-center justify-center overflow-hidden border border-border bg-muted">
-            {image ? (
-              <img
-                src={image}
-                alt="Uploaded satellite image"
-                className="max-h-[480px] w-full object-contain"
-              />
-            ) : (
-              <p className="p-6 text-sm text-muted-foreground">
-                No saved image preview was found. Start a new analysis and upload the image again.
-              </p>
-            )}
-          </div>
-        </section>
+        {image && (
+          <section className="rounded-xl border border-border bg-card p-4">
+            <h3 className="mb-3 text-lg font-semibold">Uploaded satellite image</h3>
+            <img
+              src={image}
+              alt="Uploaded image for terrain analysis"
+              className="max-h-80 w-full rounded-lg object-contain"
+            />
+          </section>
+        )}
 
-        <section>
-          <h3 className="mb-3 flex items-center gap-2 font-semibold">
-            <Mountain size={18} /> Analysis output
-          </h3>
-          <div className="min-h-64 border border-border bg-card p-5">
-            {summary ? (
-              <>
-                <p className="font-semibold">Backend elevation summary</p>
-                <pre className="mt-4 overflow-auto whitespace-pre-wrap break-words text-sm">
-                  {JSON.stringify(summary, null, 2)}
-                </pre>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                {error || "Loading the backend summary…"}
-              </p>
-            )}
-
-            <div className="mt-5 border-t border-border pt-4 text-sm">
-              <p className="flex items-center gap-2 font-semibold">
-                <AlertCircle size={16} /> Important limitation
-              </p>
-              <p className="mt-2 text-muted-foreground">
-                Relative depth is not the same as real-world elevation in metres.
-                Accurate absolute elevation requires suitable reference or geospatial data.
-                The AI model and full 3D terrain integration are still pending.
-              </p>
+        <section className="rounded-xl border border-border bg-card p-4">
+          <h3 className="mb-3 text-lg font-semibold">Relative depth summary</h3>
+          {summary ? (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {["min", "max", "mean", "range"].map((key) => (
+                <div key={key} className="rounded-lg bg-secondary p-3">
+                  <p className="text-sm capitalize text-muted-foreground">{key}</p>
+                  <p className="mt-1 text-xl font-bold">
+                    {typeof summary[key] === "number"
+                      ? (summary[key] as number).toFixed(3)
+                      : "—"}
+                  </p>
+                </div>
+              ))}
             </div>
-          </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {error || "Loading relative depth summary..."}
+            </p>
+          )}
+          <p className="mt-3 text-xs text-muted-foreground">
+            Values are normalized relative image-depth estimates, not measured real-world elevations.
+          </p>
         </section>
-      </div>
 
-      <div className="mt-7 flex flex-wrap gap-3">
-        <Button asChild>
-          <Link to="/upload">Analyze another image</Link>
-        </Button>
-        <Button variant="outline" asChild>
-          <Link to="/dashboard">Back to dashboard</Link>
-        </Button>
+        <section className="rounded-xl border border-border bg-card p-4">
+          <h3 className="mb-3 text-lg font-semibold">3D flythrough</h3>
+          {videoBlobUrl && videoAvailable ? (
+            <video
+              src={videoBlobUrl}
+              controls
+              playsInline
+              className="w-full rounded-lg bg-black"
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Flythrough video is not available. You can still open the interactive viewer.
+            </p>
+          )}
+          <Button className="mt-4" asChild>
+            <Link to="/viewer">Open 3D terrain viewer</Link>
+          </Button>
+        </section>
+
+        <div className="flex flex-wrap gap-3">
+          <Button variant="outline" asChild>
+            <Link to="/upload">Analyze another image</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link to="/dashboard">Back to dashboard</Link>
+          </Button>
+        </div>
       </div>
     </AppShell>
   );

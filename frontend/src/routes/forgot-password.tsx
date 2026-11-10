@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, Mail, KeyRound } from "lucide-react";
 import { Brand } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 
-const API_URL = "https://zany-space-goggles-gxrvg677gqqxcwqv9-8000.app.github.dev";
+const API_URL = "https://depthhwizard.onrender.com";
 
 export const Route = createFileRoute("/forgot-password")({
   head: () => ({
